@@ -1,0 +1,7 @@
+# don't check-in binaries or analysis files
+*.exe
+*.test
+*.prof
+
+# don't check-in the vendor directory, allow dep to manage it for us
+vendor/
