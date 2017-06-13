@@ -111,19 +111,16 @@ func whoisResponseRead(whois *bufio.ReadWriter) ([]string, error) {
 		return nil, ErrBadWhoisData
 	}
 
-	// join any non-informational lines, discarding the header and trailer
-	dataJoined := strings.Join(data[1:len(data)-1], "")
-
 	// how much data did we actually get?
-	if reportedLength != len(dataJoined) {
+	if reportedLength != len(data[1]) {
 		log.WithFields(log.Fields{
 			"reported": reportedLength,
-			"actual":   len(dataJoined),
+			"actual":   len(data),
 		}).Debug("Data length mismatch")
 		return nil, ErrBadWhoisLength
 	}
 
 	// remove the newline, split all the results out, and return them
-	return strings.Split(strings.TrimSuffix(dataJoined, "\n"), " "), nil
+	return strings.Split(strings.TrimSuffix(data[1], "\n"), " "), nil
 
 }
