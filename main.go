@@ -163,12 +163,20 @@ func main() {
 			}).Fatal("Bad WHOIS ASN Lookup")
 		}
 		results = append(results, result...)
-
 	}
 
 	// close whois connection
 	whois.WriteString("!q\n")
 
+	// if we have no results, assume this isn't wanted and fail early
+	if len(results) == 0 {
+		log.WithFields(log.Fields{
+			"query": query,
+		}).Fatal("No prefixes returned")
+	}
+
+	// FIXME: temporary hack
+	// eventually, speedMode will be removed =(
 	if *speedMode {
 		// print results out to stdout
 		fmt.Println(strings.Join(results, "\n"))
