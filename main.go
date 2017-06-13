@@ -19,9 +19,10 @@ const (
 
 // regexps
 var (
-	reAS    = regexp.MustCompile("[Aa][Ss]([1-9][0-9]+|[1-9])")
-	reASN   = regexp.MustCompile("([1-9][0-9]+|[1-9])")
-	reASSet = regexp.MustCompile("[AaRr][Ss].+")
+	reAS      = regexp.MustCompile("^[Aa][Ss]([1-9][0-9]+|[1-9])$")
+	reASN     = regexp.MustCompile("^([1-9][0-9]+|[1-9])$")
+	reASSet   = regexp.MustCompile("^[AaRr][Ss].+$")
+	reSources = regexp.MustCompile("^[A-Za-z0-9,]+$")
 )
 
 // flags
@@ -54,6 +55,13 @@ func main() {
 		log.WithFields(log.Fields{
 			"afi": *afi,
 		}).Fatal("Only IPv4 and IPv6 supported")
+	}
+	if !reSources.MatchString(*sources) {
+		// prevent nefarious usage of sources line
+		flag.Usage()
+		log.WithFields(log.Fields{
+			"sources": *sources,
+		}).Fatal("Bad Sources line: letters, numbers, and commas only")
 	}
 
 	// get query
