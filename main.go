@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -90,6 +91,7 @@ func main() {
 	}
 
 	// dial whois server
+	timeConnOpen := time.Now()
 	whoisConn, err := net.Dial("tcp", net.JoinHostPort(*whoisServer, *whoisPort))
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -212,6 +214,11 @@ func main() {
 
 	// close whois connection
 	whois.WriteString("!q\n")
+	timeConnClose := time.Now()
+	log.WithFields(log.Fields{
+		"prefixes": len(results),
+		"duration": timeConnClose.Sub(timeConnOpen),
+	}).Debug("Connection Duration")
 
 	// if we have no results, assume this isn't wanted and fail early
 	if len(results) == 0 {
@@ -226,12 +233,16 @@ func main() {
 		// print results out to stdout
 		fmt.Println(strings.Join(results, "\n"))
 	} else {
-		// dedupe, then sort nicely
-		log.WithFields(log.Fields{
-			"prefixes": len(results),
-		}).Debug("Before deduplication")
+		// deduplication
+		timeDedupeStart := time.Now()
 		results = dedupePrefixes(results)
+		timeDedupeFinish := time.Now()
+		log.WithFields(log.Fields{
+			"duration": timeDedupeFinish.Sub(timeDedupeStart),
+			"prefixes": len(results),
+		}).Debug("After deduplication")
 
+		// conversion from strings to structs
 		var prefixes []net.IPNet
 		for _, result := range results {
 			_, prefix, err := net.ParseCIDR(result)
@@ -243,20 +254,37 @@ func main() {
 			}
 			prefixes = append(prefixes, *prefix)
 		}
-		sort.Sort(ByPrefix(prefixes))
+		timeConvertFinish := time.Now()
 		log.WithFields(log.Fields{
+			"duration": timeConvertFinish.Sub(timeDedupeFinish),
 			"prefixes": len(prefixes),
-		}).Debug("After deduplication")
+		}).Debug("After conversion")
+
+		// sorting into order
+		sort.Sort(ByPrefix(prefixes))
+		timeSortingFinish := time.Now()
+		log.WithFields(log.Fields{
+			"duration": timeSortingFinish.Sub(timeConvertFinish),
+			"prefixes": len(prefixes),
+		}).Debug("After sorting")
 
 		if *aggregate {
 			prefixes = aggregatePrefixList(prefixes)
+			timeAggregateFinish := time.Now()
 			log.WithFields(log.Fields{
+				"duration": timeAggregateFinish.Sub(timeSortingFinish),
 				"prefixes": len(prefixes),
 			}).Debug("After aggregation")
 		}
 
 		// print results out to stdout
+		timeRenderStart := time.Now()
 		displayPrefixes(prefixes, *displayStyle, *displayName)
+		timeRenderFinish := time.Now()
+		log.WithFields(log.Fields{
+			"duration": timeRenderFinish.Sub(timeRenderStart),
+			"prefixes": len(prefixes),
+		}).Debug("Time to render")
 	}
 
 }
