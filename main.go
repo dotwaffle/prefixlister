@@ -116,6 +116,10 @@ func main() {
 	go func() {
 		for _, asn := range queryList {
 			<-wait
+			log.WithFields(log.Fields{
+				"afi": *afi,
+				"asn": asn,
+			}).Debug("Querying ASN")
 			err := lookupASN(whois, *afi, asn)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -140,7 +144,9 @@ func main() {
 		wait <- true
 
 		result, err := whoisResponseRead(whois)
-		if err != nil {
+		if err == ErrKeyNotFound {
+			continue
+		} else if err != nil {
 			log.WithFields(log.Fields{
 				"err":    err,
 				"result": result,
