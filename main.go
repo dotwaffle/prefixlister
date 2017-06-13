@@ -33,6 +33,7 @@ var (
 	aggregate     = flag.Bool("aggregate", false, "Aggregate prefixes [BROKEN, SLOW, UNFINISHED, imagine implicit orlonger]")
 	pipelineDepth = flag.Int("pipeline", -1, "Pipeline Depth")
 	speedMode     = flag.Bool("speed-mode", false, "Activate speed mode [NOSORTING, NODEDUPE, NOAGGREGATE, THERESNOLIMIT]")
+	displayStyle  = flag.String("style", "list", "Style of prefix-list to generate")
 )
 
 func main() {
@@ -201,9 +202,7 @@ func main() {
 		}
 
 		// print results out to stdout
-		for _, prefix := range prefixes {
-			fmt.Println(prefix.String())
-		}
+		displayPrefixes(prefixes, *displayStyle)
 	}
 
 }
