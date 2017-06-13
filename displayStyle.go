@@ -26,6 +26,14 @@ func displayPrefixes(prefixes []net.IPNet, displayStyle string, displayName stri
 		style.JUNOSPrefixList(prefixes, displayName)
 	case "juniper-route-filter", "junos-route-filter":
 		style.JUNOSRouteFilter(prefixes, displayName)
+	case "brocade":
+		style.Brocade(prefixes, displayName)
+	case "force10":
+		style.Force10(prefixes, displayName)
+	case "quagga":
+		style.Quagga(prefixes, displayName)
+	case "redback":
+		style.Redback(prefixes, displayName)
 	default:
 		log.WithFields(log.Fields{
 			"style": displayStyle,

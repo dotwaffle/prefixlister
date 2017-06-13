@@ -30,9 +30,9 @@ func JUNOSRouteFilter(prefixes []net.IPNet, name string) {
 	// header, with mandatory name
 	fmt.Printf("policy-options {\n")
 	if name == "" {
-		fmt.Printf("\tprefix-statement prefixlist {\n")
+		fmt.Printf("\tpolicy-statement prefixlist {\n")
 	} else {
-		fmt.Printf("\tprefix-statement %s {\n", name)
+		fmt.Printf("\tpolicy-statement %s {\n", name)
 	}
 	fmt.Printf("replace:\n")
 	fmt.Printf("\tfrom {\n")
