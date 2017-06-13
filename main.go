@@ -48,10 +48,10 @@ func main() {
 	// is query valid?
 	var queryList []string
 	var expand bool
-	if reASN.MatchString(query) {
-		queryList = append(queryList, "AS"+query)
-	} else if reAS.MatchString(query) {
+	if reAS.MatchString(query) {
 		queryList = append(queryList, query)
+	} else if reASN.MatchString(query) {
+		queryList = append(queryList, "AS"+query)
 	} else if reASSet.MatchString(query) {
 		expand = true
 	} else {
