@@ -19,15 +19,15 @@ const (
 
 // regexps
 var (
-	reAS    = regexp.MustCompile("AS([1-9][0-9]+|[1-9])")
+	reAS    = regexp.MustCompile("[Aa][Ss]([1-9][0-9]+|[1-9])")
 	reASN   = regexp.MustCompile("([1-9][0-9]+|[1-9])")
-	reASSet = regexp.MustCompile("(AS-|RS-).+")
+	reASSet = regexp.MustCompile("[AaRr][Ss].+")
 )
 
 // flags
 var (
 	debug         = flag.Bool("debug", false, "Enable debugging mode")
-	whoisServer   = flag.String("host", "whois.radb.net", "WHOIS server to query")
+	whoisServer   = flag.String("host", "whois.radb.net", "WHOIS server to query, irrd servers only (not RIPE)")
 	whoisPort     = flag.String("port", "43", "WHOIS port to query")
 	afi           = flag.String("afi", "4", "Address Family to query [4|6]")
 	aggregate     = flag.Bool("aggregate", false, "Aggregate prefixes [BROKEN, SLOW, UNFINISHED, imagine implicit orlonger]")
@@ -35,6 +35,7 @@ var (
 	speedMode     = flag.Bool("speed-mode", false, "Activate speed mode [NOSORTING, NODEDUPE, NOAGGREGATE, THERESNOLIMIT]")
 	displayStyle  = flag.String("style", "list", "Style of prefix-list to generate")
 	displayName   = flag.String("name", "prefixlister", "Name of prefix-list to generate")
+	sources       = flag.String("sources", "", "Sources (default: all, recommended: RADB,RIPE,APNIC)")
 )
 
 func main() {
@@ -43,7 +44,27 @@ func main() {
 	if *debug == true {
 		log.SetLevel(log.DebugLevel)
 	}
-	query := flag.Arg(0)
+	if *pipelineDepth > 16384 || *pipelineDepth < -1 || *pipelineDepth == 0 {
+		// some of these values might actually work, but let's prevent sillyness!
+		log.WithFields(log.Fields{
+			"pipeline": *pipelineDepth,
+		}).Fatal("Too long of a pipeline")
+	}
+	if *afi != "4" && *afi != "6" {
+		log.WithFields(log.Fields{
+			"afi": *afi,
+		}).Fatal("Only IPv4 and IPv6 supported")
+	}
+
+	// get query
+	remainingArgs := flag.Args()
+	if len(remainingArgs) != 1 {
+		flag.Usage()
+		log.WithFields(log.Fields{
+			"query": remainingArgs,
+		}).Fatal("Bad query arguments: Must have only one query")
+	}
+	query := remainingArgs[0]
 
 	// is query valid?
 	var queryList []string
@@ -93,6 +114,22 @@ func main() {
 	}).Debug("Set Identity")
 	if err != nil || confirmation != "C\n" {
 		log.Fatal("Failed to set tool name for statistics/logging purposes")
+	}
+
+	// if we need to set record sources, do so now
+	if *sources != "" {
+		whois.WriteString("!s" + *sources + "\n")
+		if err := whois.Flush(); err != nil {
+			log.Fatal("Connection failure mid-stream")
+		}
+		confirmation, err := whois.ReadString('\n')
+		log.WithFields(log.Fields{
+			"sources":      *sources,
+			"confirmation": strings.TrimSuffix(confirmation, "\n"),
+		}).Debug("Set Sources")
+		if err != nil || confirmation != "C\n" {
+			log.Fatal("Failed to set record sources")
+		}
 	}
 
 	// if we need to expand the query, do so now
