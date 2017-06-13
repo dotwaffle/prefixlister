@@ -31,7 +31,8 @@ var (
 	whoisPort     = flag.String("port", "43", "WHOIS port to query")
 	afi           = flag.String("afi", "4", "Address Family to query [4|6]")
 	aggregate     = flag.Bool("aggregate", false, "Aggregate prefixes [BROKEN, SLOW, UNFINISHED, imagine implicit orlonger]")
-	pipelineDepth = flag.Int("pipeline", 128, "Pipeline Depth")
+	pipelineDepth = flag.Int("pipeline", -1, "Pipeline Depth")
+	speedMode     = flag.Bool("speed-mode", false, "Activate speed mode [NOSORTING, NODEDUPE, NOAGGREGATE, THERESNOLIMIT]")
 )
 
 func main() {
@@ -107,8 +108,15 @@ func main() {
 	}
 
 	// add the initial queries to the pipeline
-	wait := make(chan bool, *pipelineDepth)
-	for i := 0; i < *pipelineDepth; i++ {
+	// if we set -1, just do all of them at once
+	var chanSize int
+	if *pipelineDepth == -1 {
+		chanSize = len(queryList)
+	} else {
+		chanSize = *pipelineDepth
+	}
+	wait := make(chan bool, chanSize)
+	for i := 0; i < chanSize; i++ {
 		wait <- true
 	}
 
@@ -159,36 +167,43 @@ func main() {
 	// close whois connection
 	whois.WriteString("!q\n")
 
-	// dedupe, then sort nicely
-	log.WithFields(log.Fields{
-		"prefixes": len(results),
-	}).Debug("Before deduplication")
-	results = dedupePrefixes(results)
-	var prefixes []net.IPNet
-	for _, result := range results {
-		_, prefix, err := net.ParseCIDR(result)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"cidr": result,
-				"err":  err,
-			}).Fatal("Bad CIDR returned from WHOIS")
-		}
-		prefixes = append(prefixes, *prefix)
-	}
-	sort.Sort(ByPrefix(prefixes))
-	log.WithFields(log.Fields{
-		"prefixes": len(prefixes),
-	}).Debug("After deduplication")
+	if *speedMode {
+		// print results out to stdout
+		fmt.Println(strings.Join(results, "\n"))
+	} else {
+		// dedupe, then sort nicely
+		log.WithFields(log.Fields{
+			"prefixes": len(results),
+		}).Debug("Before deduplication")
+		results = dedupePrefixes(results)
 
-	if *aggregate {
-		prefixes = aggregatePrefixList(prefixes)
+		var prefixes []net.IPNet
+		for _, result := range results {
+			_, prefix, err := net.ParseCIDR(result)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"cidr": result,
+					"err":  err,
+				}).Fatal("Bad CIDR returned from WHOIS")
+			}
+			prefixes = append(prefixes, *prefix)
+		}
+		sort.Sort(ByPrefix(prefixes))
 		log.WithFields(log.Fields{
 			"prefixes": len(prefixes),
-		}).Debug("After aggregation")
+		}).Debug("After deduplication")
+
+		if *aggregate {
+			prefixes = aggregatePrefixList(prefixes)
+			log.WithFields(log.Fields{
+				"prefixes": len(prefixes),
+			}).Debug("After aggregation")
+		}
+
+		// print results out to stdout
+		for _, prefix := range prefixes {
+			fmt.Println(prefix.String())
+		}
 	}
 
-	// print results out to stdout
-	for _, prefix := range prefixes {
-		fmt.Println(prefix.String())
-	}
 }
