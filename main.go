@@ -22,7 +22,7 @@ var (
 	reAS      = regexp.MustCompile("^[Aa][Ss]([1-9][0-9]+|[1-9])$")
 	reASN     = regexp.MustCompile("^([1-9][0-9]+|[1-9])$")
 	reASSet   = regexp.MustCompile("^[AaRr][Ss].+$")
-	reSources = regexp.MustCompile("^[A-Za-z0-9,]*$")
+	reSources = regexp.MustCompile("^[A-Za-z0-9,]+$")
 )
 
 // flags
@@ -56,7 +56,7 @@ func main() {
 			"afi": *afi,
 		}).Fatal("Only IPv4 and IPv6 supported")
 	}
-	if !reSources.MatchString(*sources) {
+	if *sources != "" && !reSources.MatchString(*sources) {
 		// prevent nefarious usage of sources line
 		flag.Usage()
 		log.WithFields(log.Fields{
