@@ -22,7 +22,7 @@ var (
 	reAS      = regexp.MustCompile("^[Aa][Ss]([1-9][0-9]+|[1-9])$")
 	reASN     = regexp.MustCompile("^([1-9][0-9]+|[1-9])$")
 	reASSet   = regexp.MustCompile("^[AaRr][Ss].+$")
-	reSources = regexp.MustCompile("^[A-Za-z0-9,]+$")
+	reSources = regexp.MustCompile("^[A-Za-z0-9,]*$")
 )
 
 // flags
