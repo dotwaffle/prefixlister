@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"net"
 	"strings"
 
@@ -10,35 +12,43 @@ import (
 )
 
 func displayPrefixes(prefixes []net.IPNet, displayStyle string, displayName string) {
+	// things move far quicker in buffers than with thousands of syscalls!
+	var buf bytes.Buffer
+
 	// to prevent capitalisation issues, just lowercase everything
 	switch strings.ToLower(displayStyle) {
 	case "list":
-		style.List(prefixes)
+		buf = style.List(prefixes)
+	case "join":
+		buf = style.Join(prefixes)
 	case "cisco-ios", "ciscoios", "cisco", "ios":
-		style.CiscoIOS(prefixes, displayName)
+		buf = style.CiscoIOS(prefixes, displayName)
 	case "cisco-xr", "cisco-ios-xr", "ios-xr", "xr":
-		style.CiscoIOSXR(prefixes, displayName)
+		buf = style.CiscoIOSXR(prefixes, displayName)
 	case "openbgpd":
-		style.OpenBGPD(prefixes, displayName)
+		buf = style.OpenBGPD(prefixes, displayName)
 	case "bird":
-		style.BIRD(prefixes, displayName)
+		buf = style.BIRD(prefixes, displayName)
 	case "juniper", "junos", "juniper-prefix-list", "junos-prefix-list":
-		style.JUNOSPrefixList(prefixes, displayName)
+		buf = style.JUNOSPrefixList(prefixes, displayName)
 	case "juniper-route-filter", "junos-route-filter":
-		style.JUNOSRouteFilter(prefixes, displayName)
+		buf = style.JUNOSRouteFilter(prefixes, displayName)
 	case "brocade":
-		style.Brocade(prefixes, displayName)
+		buf = style.Brocade(prefixes, displayName)
 	case "force10":
-		style.Force10(prefixes, displayName)
+		buf = style.Force10(prefixes, displayName)
 	case "quagga":
-		style.Quagga(prefixes, displayName)
+		buf = style.Quagga(prefixes, displayName)
 	case "redback":
-		style.Redback(prefixes, displayName)
+		buf = style.Redback(prefixes, displayName)
 	default:
 		log.WithFields(log.Fields{
 			"style": displayStyle,
 			"name":  displayName,
 		}).Debug("Display Style Not Found, using default (list) format")
-		style.List(prefixes)
+		buf = style.List(prefixes)
 	}
+
+	// print the buffer to the screen
+	fmt.Println(buf.String())
 }

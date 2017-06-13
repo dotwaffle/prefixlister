@@ -1,25 +1,30 @@
 package style
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 )
 
 // Brocade prefix list format
-func Brocade(prefixes []net.IPNet, name string) {
+func Brocade(prefixes []net.IPNet, name string) bytes.Buffer {
+	var buf bytes.Buffer
+
 	// delete the old prefix-list
 	if name == "" {
-		fmt.Printf("no ip prefix-list prefixlist\n")
+		buf.WriteString(fmt.Sprintf("no ip prefix-list prefixlist\n"))
 	} else {
-		fmt.Printf("no ip prefix-list %s\n", name)
+		buf.WriteString(fmt.Sprintf("no ip prefix-list %s\n", name))
 	}
 
 	// construct a new list
 	for _, prefix := range prefixes {
 		if name == "" {
-			fmt.Printf("ip prefix-list %s permit %s\n", name, prefix.String())
+			buf.WriteString(fmt.Sprintf("ip prefix-list %s permit %s\n", name, prefix.String()))
 		} else {
-			fmt.Printf("ip prefix-list prefixlist permit %s\n", prefix.String())
+			buf.WriteString(fmt.Sprintf("ip prefix-list prefixlist permit %s\n", prefix.String()))
 		}
 	}
+
+	return buf
 }

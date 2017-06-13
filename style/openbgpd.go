@@ -1,28 +1,33 @@
 package style
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 )
 
 // OpenBGPD prefix list format
-func OpenBGPD(prefixes []net.IPNet, name string) {
+func OpenBGPD(prefixes []net.IPNet, name string) bytes.Buffer {
+	var buf bytes.Buffer
+
 	// header, with optional name
 	if name == "" {
-		fmt.Printf("prefix { \\\n")
+		buf.WriteString(fmt.Sprintf("prefix { \\\n"))
 	} else {
-		fmt.Printf("%s=\"prefix { \\\n", name)
+		buf.WriteString(fmt.Sprintf("%s=\"prefix { \\\n", name))
 	}
 
 	// construct a new list
 	for _, prefix := range prefixes {
-		fmt.Printf("\t%s \\\n", prefix.String())
+		buf.WriteString(fmt.Sprintf("\t%s \\\n", prefix.String()))
 	}
 
 	// footer, with optional name
 	if name == "" {
-		fmt.Printf("\t}\n")
+		buf.WriteString(fmt.Sprintf("\t}\n"))
 	} else {
-		fmt.Printf("\t}\"\n")
+		buf.WriteString(fmt.Sprintf("\t}\"\n"))
 	}
+
+	return buf
 }

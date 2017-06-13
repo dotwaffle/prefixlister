@@ -146,7 +146,7 @@ func main() {
 	if expand == true {
 		log.WithFields(log.Fields{
 			"query": query,
-		}).Debug("Expanding")
+		}).Debug("Expanding Query Set")
 		queryList, err = expandASSet(whois, query)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -171,12 +171,12 @@ func main() {
 
 	// run inverse lookup for each ASN requested, asynchronously
 	go func() {
+		log.WithFields(log.Fields{
+			"afi":     *afi,
+			"queries": len(queryList),
+		}).Debug("Querying ASNs")
 		for _, asn := range queryList {
 			<-wait
-			log.WithFields(log.Fields{
-				"afi": *afi,
-				"asn": asn,
-			}).Debug("Querying ASN")
 			err := lookupASN(whois, *afi, asn)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -218,7 +218,7 @@ func main() {
 	log.WithFields(log.Fields{
 		"prefixes": len(results),
 		"duration": timeConnClose.Sub(timeConnOpen),
-	}).Debug("Connection Duration")
+	}).Debug("Connection Closed")
 
 	// if we have no results, assume this isn't wanted and fail early
 	if len(results) == 0 {
@@ -243,7 +243,7 @@ func main() {
 		}).Debug("After deduplication")
 
 		// conversion from strings to structs
-		var prefixes []net.IPNet
+		prefixes := make([]net.IPNet, 0, len(results))
 		for _, result := range results {
 			_, prefix, err := net.ParseCIDR(result)
 			if err != nil {
