@@ -1,0 +1,10 @@
+policy-options {
+	policy-statement {{ .Name }} {
+replace:
+	from {
+		{{ range $prefix := .Prefixes -}}
+		route-filter {{ $prefix }} exact;
+		{{ end -}}
+		}
+	}
+}

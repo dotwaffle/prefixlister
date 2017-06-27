@@ -1,54 +1,49 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"net"
-	"strings"
+	"os"
+	"path/filepath"
+	"text/template"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/dotwaffle/prefixlister/style"
 )
 
-func displayPrefixes(prefixes []net.IPNet, displayStyle string, displayName string) {
-	// things move far quicker in buffers than with thousands of syscalls!
-	var buf bytes.Buffer
+type outputFormat struct {
+	Name     string
+	AFI      int
+	Prefixes []string
+}
 
-	// to prevent capitalisation issues, just lowercase everything
-	switch strings.ToLower(displayStyle) {
-	case "list":
-		buf = style.List(prefixes)
-	case "join":
-		buf = style.Join(prefixes)
-	case "cisco-ios", "ciscoios", "cisco", "ios":
-		buf = style.CiscoIOS(prefixes, displayName)
-	case "cisco-xr", "cisco-ios-xr", "ios-xr", "xr":
-		buf = style.CiscoIOSXR(prefixes, displayName)
-	case "openbgpd":
-		buf = style.OpenBGPD(prefixes, displayName)
-	case "bird":
-		buf = style.BIRD(prefixes, displayName)
-	case "juniper", "junos", "juniper-prefix-list", "junos-prefix-list":
-		buf = style.JUNOSPrefixList(prefixes, displayName)
-	case "juniper-route-filter", "junos-route-filter":
-		buf = style.JUNOSRouteFilter(prefixes, displayName)
-	case "brocade":
-		buf = style.Brocade(prefixes, displayName)
-	case "force10":
-		buf = style.Force10(prefixes, displayName)
-	case "quagga":
-		buf = style.Quagga(prefixes, displayName)
-	case "redback":
-		buf = style.Redback(prefixes, displayName)
-	default:
-		log.WithFields(log.Fields{
-			"style": displayStyle,
-			"name":  displayName,
-		}).Debug("Display Style Not Found, using default (list) format")
-		buf = style.List(prefixes)
+func displayPrefixes(prefixes []net.IPNet, displayStyle string, displayName string) {
+	// determine if this is an IPv4 or IPv6 prefix-list
+	var afi int
+	if ok := prefixes[0].IP.To4(); ok == nil {
+		afi = 6
+	} else {
+		afi = 4
+	}
+	if !(afi == 4 || afi == 6) {
+		log.Fatal("Invalid prefix list returned")
 	}
 
-	// print the buffer to the screen
-	fmt.Println(buf.String())
+	// format output suitable for display
+	var data outputFormat
+	data.Name = displayName
+	data.AFI = afi
+	data.Prefixes = make([]string, 0, len(prefixes))
+	for _, prefix := range prefixes {
+		data.Prefixes = append(data.Prefixes, prefix.String())
+	}
+
+	// import the template
+	tmpl, err := template.ParseFiles(filepath.Join("templates", displayStyle))
+	if err != nil {
+		log.Fatalf("IMPORT TEMPLATE FAIL: %s", err)
+	}
+
+	// apply the template, print it to stdout
+	if err := tmpl.Execute(os.Stdout, data); err != nil {
+		log.Fatalf("TEMPLATE EXECUTION FAIL: %s", err)
+	}
 }

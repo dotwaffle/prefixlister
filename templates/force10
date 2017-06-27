@@ -1,0 +1,11 @@
+{{- if eq .AFI 4 }}
+no ip prefix-list {{ .Name }}
+ip prefix-list {{ .Name }}
+{{- else if eq .AFI 6 }}
+no ipv6 prefix-list {{ .Name }}
+ipv6 prefix-list {{ .Name }}
+{{- end }}
+{{- range $index, $prefix := .Prefixes }}
+	seq {{ $index }} permit {{ $prefix -}}
+{{ end }}
+

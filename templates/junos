@@ -1,0 +1,8 @@
+policy-options {
+replace:
+	prefix-list {{ .Name }} {
+		{{ range $prefix := .Prefixes -}}
+		{{ $prefix }};
+		{{ end -}}
+	}
+}

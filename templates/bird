@@ -1,0 +1,7 @@
+{{ .Name }} = [
+{{- range $index, $prefix := .Prefixes }}
+{{- if $index }},{{ end }}
+	{{ $prefix -}}
+{{ end }}
+];
+

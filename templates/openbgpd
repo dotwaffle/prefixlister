@@ -1,0 +1,6 @@
+{{ .Name }}="prefix { \
+	{{ range $prefix := .Prefixes -}}
+	{{ $prefix }} \
+	{{ end -}}
+	}"
+

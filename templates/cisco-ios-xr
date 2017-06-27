@@ -1,0 +1,8 @@
+no prefix-set {{ .Name }}
+prefix-set {{ .Name }}
+{{- range $index, $prefix := .Prefixes }}
+{{- if $index }},{{ end }}
+	{{ $prefix -}}
+{{ end }}
+end-set
+
