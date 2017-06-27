@@ -12,4 +12,6 @@ RUN go install -v
 FROM alpine:latest
 WORKDIR /root/
 COPY --from=build /go/bin/prefixlister .
+RUN mkdir templates
+COPY --from=build /go/src/prefixlister/templates/ templates/
 ENTRYPOINT ["./prefixlister"]
