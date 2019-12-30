@@ -29,7 +29,7 @@ var (
 // flags
 var (
 	debug         = flag.Bool("debug", false, "Enable debugging mode")
-	whoisServer   = flag.String("host", "whois.radb.net", "WHOIS server to query, irrd servers only (not RIPE)")
+	whoisServer   = flag.String("host", "rr.ntt.net", "WHOIS server to query, irrd servers only (not RIPE)")
 	whoisPort     = flag.String("port", "43", "WHOIS port to query")
 	afi           = flag.String("afi", "4", "Address Family to query [4|6]")
 	aggregate     = flag.Bool("aggregate", false, "Aggregate prefixes [BROKEN, SLOW, UNFINISHED, imagine implicit orlonger]")
@@ -144,15 +144,27 @@ func main() {
 
 	// if we need to expand the query, do so now
 	if expand == true {
-		log.WithFields(log.Fields{
-			"query": query,
-		}).Debug("Expanding Query Set")
-		queryList, err = expandASSet(whois, query)
-		if err != nil {
+		whois.WriteString("!a\n")
+		if err := whois.Flush(); err != nil {
+			log.Fatal("Connection failure mid-stream")
+		}
+		confirmation, err := whois.ReadString('\n')
+		if confirmation == "F Missing required set name for A query\n" {
+			log.Debug("Server supports 'a' queries")
+			queryList = append(queryList, query)
+		} else {
 			log.WithFields(log.Fields{
-				"query": query,
-				"err":   err,
-			}).Fatal("Failed to get AS-SET result")
+				"confirmation": confirmation,
+				"query":        query,
+			}).Debug("Expanding Query Set")
+			queryList, err = expandASSet(whois, query)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"query": query,
+					"err":   err,
+				}).Fatal("Failed to get AS-SET result")
+			}
+			expand = false
 		}
 	}
 
@@ -169,16 +181,15 @@ func main() {
 		wait <- true
 	}
 
-	// run inverse lookup for each ASN requested, asynchronously
+	// run inverse lookup for each object requested, asynchronously
 	go func() {
 		log.WithFields(log.Fields{
 			"afi":     *afi,
 			"queries": len(queryList),
-		}).Debug("Querying ASNs")
+		}).Debug("Querying objects")
 		for _, asn := range queryList {
 			<-wait
-			err := lookupASN(whois, *afi, asn)
-			if err != nil {
+			if err := lookupRecordKey(whois, *afi, asn, expand); err != nil {
 				log.WithFields(log.Fields{
 					"err": err,
 				}).Fatal("Bad WHOIS AFI Lookup")
@@ -188,6 +199,7 @@ func main() {
 					"afi":       *afi,
 					"asn":       asn,
 					"available": whois.Available(),
+					"expand":    expand,
 					"trigger":   "writer",
 				}).Debug("Write Buffer Statistics")
 			}

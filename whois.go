@@ -30,13 +30,17 @@ func expandASSet(whois *bufio.ReadWriter, set string) ([]string, error) {
 	return whoisResponseRead(whois)
 }
 
-func lookupASN(whois *bufio.ReadWriter, afi string, asn string) error {
+func lookupRecordKey(whois *bufio.ReadWriter, afi string, recordKey string, expand bool) error {
 	// work out the query string, and send it
-	switch afi {
-	case "4":
-		whois.WriteString("!g" + asn + "\n")
-	case "6":
-		whois.WriteString("!6" + asn + "\n")
+	switch {
+	case afi == "4" && expand == true:
+		whois.WriteString("!a4" + recordKey + "\n")
+	case afi == "6" && expand == true:
+		whois.WriteString("!a6" + recordKey + "\n")
+	case afi == "4" && expand == false:
+		whois.WriteString("!g" + recordKey + "\n")
+	case afi == "6" && expand == false:
+		whois.WriteString("!6" + recordKey + "\n")
 	default:
 		return ErrBadAFI
 	}
